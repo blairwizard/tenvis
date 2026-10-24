@@ -9,6 +9,8 @@ typedef enum {
     T_SUB,
     T_DIV,
     T_MATMUL,
+    T_ADD_BIAS,
+    T_MEAN,
 } TOp;
 typedef struct shape { int rows; int cols;} Shape;
 struct tensor {
@@ -28,7 +30,11 @@ Tensor *tensor_mul(Tensor *a, Tensor *b);
 Tensor *tensor_relu(Tensor *a);
 Tensor *tensor_tanh(Tensor *a);
 Tensor *tensor_matmul(Tensor *a, Tensor *b);
+Tensor *tensor_add_bias(Tensor *x, Tensor *b);
+Tensor *tensor_mean(Tensor *x);
+Tensor *tensor_sub(Tensor *a, Tensor *b);
 void tensor_build(Tensor *n, Tensor **list, int *len);
+void tensor_backward(Tensor *loss);
 void tensor_backward_step(Tensor *n);
 void tensor_free(Tensor *t);
 void tensor_free_graph(Tensor *loss);

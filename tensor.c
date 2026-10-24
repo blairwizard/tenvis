@@ -93,8 +93,8 @@ Tensor *tensor_tanh(Tensor *a){
     return t;
 }
 Tensor *tensor_matmul(Tensor *a, Tensor *b){
-    if(a->s.cols!=b->s.rows){fprintf(stderr,"Shape mismatch\n");return NULL;}
     if(!a || !b) return NULL;
+    if(a->s.cols!=b->s.rows){fprintf(stderr,"Shape mismatch\n");return NULL;}
     Tensor *c=tensor_create(NULL,a->s.rows,b->s.cols);
     if(!c) return NULL;
     for (int i=0;i<c->s.rows;i++) {
@@ -113,6 +113,53 @@ Tensor *tensor_matmul(Tensor *a, Tensor *b){
     c->count=2;
     c->oper=T_MATMUL;
     return c;
+}
+Tensor *tensor_add_bias(Tensor *x, Tensor *b) {
+    if (!x || !b) return NULL;
+    if(b->s.rows!=1 || b->s.cols!=x->s.cols){fprintf(stderr,"tensor_add_bias: shape mismatch (%dx%d vs %dx%d)\n",x->s.rows,x->s.cols,b->s.rows,b->s.cols);return NULL;}
+    Tensor *t = tensor_create(NULL,x->s.rows,x->s.cols);
+    if(!t) return NULL;
+    for(int i=0; i<x->s.rows;i++)
+        for(int j=0;j<x->s.cols;j++)
+            t->data[i*x->s.cols+j]=x->data[i*x->s.cols+j]+b->data[j];
+    t->inputs=(Tensor **)malloc(sizeof(Tensor *)*2);
+    if(!t->inputs){tensor_free(t);return NULL;}
+    t->inputs[0]=x;
+    t->inputs[1]=b;
+    t->count=2;
+    t->oper=T_ADD_BIAS;
+    return t;
+}
+Tensor *tensor_mean(Tensor *x){
+    if(!x) return NULL;
+    Tensor *t = tensor_create(NULL, 1, 1);
+    if(!t) return NULL;
+    float s=0;
+    for(int k=0;k< x->size; k++) s+=x->data[k];
+    t->data[0]=s/x->size;
+    t->inputs=(Tensor **)malloc(sizeof(Tensor *));
+    if(!t->inputs){tensor_free(t);return NULL;}
+    t->inputs[0]=x;
+    t->count=1;
+    t->oper=T_MEAN;
+    return t;
+}
+Tensor *tensor_sub(Tensor *a, Tensor *b){
+    if(!a|| !b) return NULL;
+    if(a->s.rows != b->s.rows || a->s.cols != b->s.cols) {
+        fprintf(stderr, "tensor_sub: shape mismatch\n");
+        return NULL;
+    }
+    Tensor *t = tensor_create(NULL,a->s.rows, a->s.cols);
+    if (!t) return NULL;
+    for (int k=0;k<t->size;k++) t->data[k]=a->data[k]-b->data[k];
+    t->inputs = (Tensor **)malloc(sizeof(Tensor *)*2);
+    if(!t->inputs){tensor_free(t); return NULL;}
+    t->inputs[0]=a;
+    t->inputs[1]=b;
+    t->count=2;
+    t->oper=T_SUB;
+    return t;
 }
 void tensor_backward_step(Tensor *n) {
     switch(n->oper) {
@@ -165,6 +212,33 @@ void tensor_backward_step(Tensor *n) {
                             A->grad[i*k + p]  += g * B->data[p*n_ + j];
                             B->grad[p*n_ + j] += g * A->data[i*k + p];
                         }
+            }
+            break;
+        case T_ADD_BIAS:
+            {
+                Tensor *x = n->inputs[0], *b = n->inputs[1];
+                for(int i=0;i<n->s.rows;i++)
+                    for(int j=0;j<n->s.cols;j++){
+                        x->grad[i*n->s.cols+j]+=n->grad[i*n->s.cols+j];
+                        b->grad[j]+=n->grad[i*n->s.cols+j];
+                    }
+            }
+            break;
+        case T_MEAN:
+            {
+                Tensor *x=n->inputs[0];
+                for(int k=0;k<x->size;k++){
+                    x->grad[k]+=n->grad[0]/x->size;
+                }
+            }
+            break;
+        case T_SUB:
+            {
+                Tensor *a=n->inputs[0], *b = n->inputs[1];
+                for(int k=0;k<n->size;k++){
+                    a->grad[k]+=n->grad[k];
+                    b->grad[k]-=n->grad[k];
+                }
             }
             break;
         default:
