@@ -32,7 +32,7 @@ int main(void) {
         if (step % 500 == 0)
             printf("step %4d  loss %.5f  pred[0] %.4f\n", step, loss_val, p0);
     }
-        Tensor *h = tensor_tanh(tensor_add_bias(tensor_matmul(x, W1), b1));
+    Tensor *h = tensor_tanh(tensor_add_bias(tensor_matmul(x, W1), b1));
     Tensor *pred = tensor_add_bias(tensor_matmul(h, W2), b2);
     printf("predictions: %.3f %.3f %.3f %.3f  (want 0 1 1 0)\n",
            pred->data[0], pred->data[1], pred->data[2], pred->data[3]);
