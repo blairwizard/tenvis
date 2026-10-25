@@ -4,6 +4,7 @@
 #include "autograd.h"
 #define MAX_NODES 1024
 
+
 Node *leafcreate(float val){
     Node *n = (Node *)malloc(sizeof(Node));
     if(n==NULL){return NULL;}
