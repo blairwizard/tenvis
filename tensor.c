@@ -27,6 +27,7 @@ Tensor *tensor_create(const float *data, int rows, int cols) {
     t->visited = 0;
     return t;
 }
+
 Tensor *tensor_add(Tensor *a, Tensor *b) {
     if(!a || !b) return NULL;
     if(a->s.rows != b->s.rows || a->s.cols != b->s.cols) {
@@ -46,6 +47,7 @@ Tensor *tensor_add(Tensor *a, Tensor *b) {
     t->oper = T_ADD;
     return t;
 }
+
 Tensor *tensor_mul(Tensor *a, Tensor *b) {
     if(!a || !b) return NULL;
     if(a->s.rows != b->s.rows || a->s.cols != b->s.cols) {
@@ -79,6 +81,7 @@ Tensor *tensor_relu(Tensor *a) {
     t->oper = T_RELU;
     return t;
 }
+
 Tensor *tensor_tanh(Tensor *a){
     if(!a){return NULL;}
     Tensor *t=tensor_create(NULL,a->s.rows,a->s.cols);
@@ -93,6 +96,7 @@ Tensor *tensor_tanh(Tensor *a){
     t->oper=T_TANH;
     return t;
 }
+
 Tensor *tensor_matmul(Tensor *a, Tensor *b){
     if(!a || !b) return NULL;
     if(a->s.cols!=b->s.rows){fprintf(stderr,"Shape mismatch\n");return NULL;}
