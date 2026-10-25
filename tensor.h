@@ -1,6 +1,7 @@
 #ifndef TENSOR_H
 #define TENSOR_H
 #include <stdint.h>
+
 typedef enum {
     T_LEAF,
     T_ADD,
@@ -13,7 +14,9 @@ typedef enum {
     T_ADD_BIAS,
     T_MEAN,
 } TOp;
+
 typedef struct shape { int rows; int cols;} Shape;
+
 struct tensor {
 float *data;
 float *grad;
@@ -24,7 +27,9 @@ TOp oper;
 int visited;
 int size;
 };
+
 typedef struct tensor Tensor;
+
 Tensor *tensor_create(const float *data, int rows, int cols);
 Tensor *tensor_add(Tensor *a, Tensor *b);
 Tensor *tensor_mul(Tensor *a, Tensor *b);
@@ -42,4 +47,5 @@ void tensor_free(Tensor *t);
 void tensor_free_graph(Tensor *loss);
 void rng_seed(uint32_t s);
 float rng_uniform(void);
+
 #endif
