@@ -4,6 +4,7 @@
 #include<math.h>
 #include<string.h>
 #define TMAX_NODES 1024
+
 Tensor *tensor_create(const float *data, int rows, int cols) {
     if(rows<=0 || cols<=0) {
         return NULL;
@@ -161,6 +162,29 @@ Tensor *tensor_sub(Tensor *a, Tensor *b){
     t->oper=T_SUB;
     return t;
 }
+static uint32_t rng_state = 12345;
+
+void rng_seed(uint32_t s){
+    rng_state = s?s:1;
+}
+
+float rng_uniform(void) {
+    rng_state ^= rng_state <<13;
+    rng_state ^= rng_state>>17;
+    rng_state ^= rng_state<<5;
+    float k = (rng_state>>8)/16777216.0f;
+    return k;
+}
+Tensor *tensor_rand(int rows, int cols, float scale){
+    Tensor *t =tensor_create(NULL, rows, cols);
+    if(!t) return NULL;
+    for (int k=0; k<t->size;k++){
+        t->data[k]=rng_uniform()*2*scale-scale;
+    }
+    return t;
+}
+
+
 void tensor_backward_step(Tensor *n) {
     switch(n->oper) {
         case T_LEAF:

@@ -1,5 +1,6 @@
 #ifndef TENSOR_H
 #define TENSOR_H
+#include <stdint.h>
 typedef enum {
     T_LEAF,
     T_ADD,
@@ -33,9 +34,12 @@ Tensor *tensor_matmul(Tensor *a, Tensor *b);
 Tensor *tensor_add_bias(Tensor *x, Tensor *b);
 Tensor *tensor_mean(Tensor *x);
 Tensor *tensor_sub(Tensor *a, Tensor *b);
+Tensor *tensor_rand(int rows, int cols, float scale);
 void tensor_build(Tensor *n, Tensor **list, int *len);
 void tensor_backward(Tensor *loss);
 void tensor_backward_step(Tensor *n);
 void tensor_free(Tensor *t);
 void tensor_free_graph(Tensor *loss);
+void rng_seed(uint32_t s);
+float rng_uniform(void);
 #endif
