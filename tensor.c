@@ -27,7 +27,6 @@ Tensor *tensor_create(const float *data, int rows, int cols) {
     t->visited = 0;
     return t;
 }
-
 Tensor *tensor_add(Tensor *a, Tensor *b) {
     if(!a || !b) return NULL;
     if(a->s.rows != b->s.rows || a->s.cols != b->s.cols) {
@@ -47,7 +46,6 @@ Tensor *tensor_add(Tensor *a, Tensor *b) {
     t->oper = T_ADD;
     return t;
 }
-
 Tensor *tensor_mul(Tensor *a, Tensor *b) {
     if(!a || !b) return NULL;
     if(a->s.rows != b->s.rows || a->s.cols != b->s.cols) {
@@ -81,7 +79,6 @@ Tensor *tensor_relu(Tensor *a) {
     t->oper = T_RELU;
     return t;
 }
-
 Tensor *tensor_tanh(Tensor *a){
     if(!a){return NULL;}
     Tensor *t=tensor_create(NULL,a->s.rows,a->s.cols);
@@ -96,7 +93,6 @@ Tensor *tensor_tanh(Tensor *a){
     t->oper=T_TANH;
     return t;
 }
-
 Tensor *tensor_matmul(Tensor *a, Tensor *b){
     if(!a || !b) return NULL;
     if(a->s.cols!=b->s.rows){fprintf(stderr,"Shape mismatch\n");return NULL;}
@@ -188,6 +184,42 @@ Tensor *tensor_rand(int rows, int cols, float scale){
     return t;
 }
 
+static void row_max_sum(const float *row, int cols, float *m, float *sum) {
+    float mx=row[0];
+    for(int j=1;j<cols;j++) if (row[j]>mx) mx = row[j];
+    float s= 0;
+    for(int j=0;j<cols;j++) s+=expf(row[j]-mx);
+    *m=mx;
+    *sum=s;
+}
+
+Tensor *tensor_softmax_ce(Tensor *logits, Tensor *labels) {
+    if(!logits || !labels) return NULL;
+    if (labels->s.cols!=1 || labels->s.rows!=logits->s.rows){
+        fprintf(stderr,"tensor_softmax_ce: labels must be %dx1\n",logits->s.rows);
+        return NULL;
+    }
+    int rows = logits->s.rows, cols = logits->s.cols;
+    float total = 0;
+    for(int i=0;i<rows; i++) {
+        int c=(int)labels->data[i];
+        if(c<0 || c>=cols){fprintf(stderr, "tensor_softmax_ce: label %d out of range [0, %d)\n", c, cols);return NULL;}
+        float m, sum;
+        row_max_sum(&logits->data[i*cols], cols, &m, &sum);
+        total+=logf(sum)-(logits->data[i*cols+c]-m);
+    }
+    Tensor *t=tensor_create(NULL,1,1);
+    if(!t) return NULL;
+    t->data[0] = total/rows;
+    t->inputs=(Tensor **)malloc(sizeof(Tensor *)*2);
+    if(!t->inputs){tensor_free(t);return NULL;}
+    t->inputs[0]=logits;
+    t->inputs[1]=labels;
+    t->count=2;
+    t->oper=T_SOFTMAX_CE;
+    return t;
+
+}
 
 void tensor_backward_step(Tensor *n) {
     switch(n->oper) {
@@ -261,11 +293,28 @@ void tensor_backward_step(Tensor *n) {
             }
             break;
         case T_SUB:
-            {
+            { 
                 Tensor *a=n->inputs[0], *b = n->inputs[1];
                 for(int k=0;k<n->size;k++){
                     a->grad[k]+=n->grad[k];
                     b->grad[k]-=n->grad[k];
+                }
+            }
+            break;
+        case T_SOFTMAX_CE:
+            {
+                Tensor *z = n->inputs[0], *lab = n->inputs[1];
+                int rows = z->s.rows, cols = z->s.cols;
+                float scale = n->grad[0] / rows;
+                for (int i = 0; i < rows; i++) {
+                    int c = (int)lab->data[i];
+                    float m, sum;
+                    row_max_sum(&z->data[i * cols], cols, &m, &sum);
+                    for (int j = 0; j < cols; j++) {
+                        float p = expf(z->data[i * cols + j] - m) / sum;
+                        float onehot = (j == c) ? 1.0f : 0.0f;
+                        z->grad[i * cols + j] += (p - onehot) * scale;
+                    }
                 }
             }
             break;
@@ -302,6 +351,7 @@ void tensor_backward(Tensor *loss) {
     free(list);
 }
 void tensor_free_graph(Tensor *loss) {
+    if (!loss) return;
     Tensor *list[TMAX_NODES];
     int len=0;
     tensor_build(loss, list, &len);
