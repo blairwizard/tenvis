@@ -221,6 +221,18 @@ Tensor *tensor_softmax_ce(Tensor *logits, Tensor *labels) {
 
 }
 
+Tensor *tensor_rows(const Tensor *src, int start, int count){
+    if(!src){return NULL;}
+    Tensor *t = tensor_create(NULL,count,src->s.cols);
+    for(int i=0;i<t->size;i++) memcpy(t->data, src->data + (size_t)start * src->s.cols, sizeof(float) * t->size);
+    t->inputs=(Tensor **)malloc(sizeof(Tensor *));
+    if(!t->inputs){tensor_free(t);return NULL;}
+    t->inputs[0]=src;
+    t->count=1;
+    t->oper=T_LEAF;
+    return t;
+}
+
 void tensor_backward_step(Tensor *n) {
     switch(n->oper) {
         case T_LEAF:

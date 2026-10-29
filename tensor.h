@@ -44,4 +44,5 @@ void tensor_free(Tensor *t);
 void tensor_free_graph(Tensor *loss);
 void rng_seed(uint32_t s);
 float rng_uniform(void);
+float tensor_accuracy(const Tensor *logits, const Tensor *labels);   
 #endif
