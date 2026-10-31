@@ -223,14 +223,31 @@ Tensor *tensor_softmax_ce(Tensor *logits, Tensor *labels) {
 
 Tensor *tensor_rows(const Tensor *src, int start, int count){
     if(!src){return NULL;}
+    if(start < 0 || count<=0 || start+count > src->s.rows) {
+        fprintf(stderr, "tensor_rows: range [%d, %d) invalid for %d rows\n", start, start + count, src->s.rows);
+        return NULL;
+    }
     Tensor *t = tensor_create(NULL,count,src->s.cols);
-    for(int i=0;i<t->size;i++) memcpy(t->data, src->data + (size_t)start * src->s.cols, sizeof(float) * t->size);
-    t->inputs=(Tensor **)malloc(sizeof(Tensor *));
-    if(!t->inputs){tensor_free(t);return NULL;}
-    t->inputs[0]=src;
-    t->count=1;
-    t->oper=T_LEAF;
+    if(!t) return NULL;
+    memcpy(t->data, src->data + (size_t)start * src->s.cols, sizeof(float) * t->size);
     return t;
+}
+float tensor_accuracy(const Tensor *logits, const Tensor *labels){
+    if(!logits || !labels) return 0;
+    int rows = logits->s.rows, cols = logits->s.cols;
+    if (labels->s.rows != rows || labels->s.cols != 1) {
+        fprintf(stderr, "tensor_accuracy: labels must be %dx1\n", rows);
+        return 0;
+    }
+    int correct = 0;
+    for(int i=0;i<logits->s.rows;i++){
+        int best=0;
+        for(int j=1;j<cols;j++) {
+            if(logits->data[i*cols+j]>logits->data[i*cols+best]) best=j;
+        }
+        if(best==(int)labels->data[i]) correct++;
+    }
+    return (float)correct/rows;
 }
 
 void tensor_backward_step(Tensor *n) {

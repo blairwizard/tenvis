@@ -37,6 +37,7 @@ Tensor *tensor_mean(Tensor *x);
 Tensor *tensor_sub(Tensor *a, Tensor *b);
 Tensor *tensor_rand(int rows, int cols, float scale);
 Tensor *tensor_softmax_ce(Tensor *logits, Tensor *labels);
+Tensor *tensor_rows(const Tensor *src, int start, int count);
 void tensor_build(Tensor *n, Tensor **list, int *len);
 void tensor_backward(Tensor *loss);
 void tensor_backward_step(Tensor *n);
