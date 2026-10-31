@@ -10,6 +10,7 @@ enum op{
     RELU,
     TANH,
 };
+
 typedef enum op Op;
 
 struct Node{
